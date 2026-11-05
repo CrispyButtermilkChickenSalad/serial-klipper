@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>serial-klipper</title>
+<style>
+  :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+  body { margin: 0; background: #1b1d22; color: #e6e6e6; }
+  header { display: flex; gap: .75rem; align-items: center; padding: .5rem 1rem; background: #23262d; border-bottom: 1px solid #333; }
+  header h1 { font-size: 1rem; margin: 0; flex: 1; }
+  main { max-width: 56rem; margin: 1.5rem auto; padding: 0 1rem; }
+  button, input, select { font: inherit; padding: .4rem .8rem; border-radius: 6px; border: 1px solid #444; background: #2c3039; color: inherit; }
+  button.primary { background: #2f6fed; border-color: #2f6fed; }
+  button:disabled { opacity: .5; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { text-align: left; padding: .3rem .5rem; border-bottom: 1px solid #333; font-size: .9rem; }
+  .muted { color: #9aa; } .err { color: #ff7b7b; } .ok { color: #6fdc8c; }
+  #app { position: fixed; inset: 41px 0 0 0; width: 100%; height: calc(100% - 41px); border: 0; background: #111; }
+  pre#term { background: #000; padding: .5rem; height: 20rem; overflow: auto; white-space: pre-wrap; }
+  .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .75rem 0; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>serial-klipper</h1>
+  <span id="status" class="muted">not connected</span>
+  <button id="back" hidden>Menu</button>
+  <button id="disconnect" hidden>Disconnect</button>
+</header>
+
+<main id="menu">
+  <section id="connect">
+    <p>Open Fluidd or Mainsail on a Klipper host that is reachable only through a serial link.
+       Everything runs in your browser: it talks to the
+       <a href="https://github.com/CrispyButtermilkChickenSalad/serial-klipper">serial-klipper</a>
+       host daemon over Web Serial. Nothing is uploaded.</p>
+    <p id="unsupported" class="err" hidden>Web Serial is not available. Use Chrome or Edge on desktop (https or localhost).</p>
+    <div class="row">
+      <label>Link baud <input id="baud" type="number" value="115200" style="width:8rem"></label>
+      <button id="connectBtn" class="primary">Connect serial port…</button>
+    </div>
+    <p class="muted">The host needs <code>serial-klipper-host</code> running on the port you pick.
+       Close any other program using the port first.</p>
+    <p id="error" class="err"></p>
+  </section>
+
+  <section id="ready" hidden>
+    <h2 id="hostname"></h2>
+    <div class="row">
+      <button id="openFluidd" class="primary">Open Fluidd</button>
+      <button id="openMainsail" class="primary">Open Mainsail</button>
+    </div>
+    <h3>Serial devices on the host</h3>
+    <table id="devices"><thead><tr><th>Device</th><th>Path</th><th>State</th><th></th></tr></thead><tbody></tbody></table>
+    <div id="consoleBox" hidden>
+      <h3 id="consoleTitle"></h3>
+      <pre id="term"></pre>
+      <div class="row">
+        <input id="termInput" placeholder="type a line and press Enter" style="flex:1">
+        <label><input id="termCrlf" type="checkbox"> CRLF</label>
+        <button id="termClose">Close</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<iframe id="app" hidden></iframe>
+<script type="module" src="launcher.js"></script>
+</body>
+</html>

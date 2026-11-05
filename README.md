@@ -47,6 +47,24 @@ Klipper keeps its MCU ports open. Opening one yourself would corrupt its protoco
 refuses ports already in use unless you pass `--force`. Use the Klipper API socket / Moonraker
 for MCUs Klipper owns; use raw passthrough for MCUs it does not (e.g. a board on stock firmware).
 
+## Optional web UI (GitHub Pages)
+
+`web/` is a static app that hosts Fluidd and Mainsail in your browser and tunnels them over a
+serial port using the Web Serial API (Chrome / Edge, https or localhost). Nothing is uploaded: the
+page talks to `serial-klipper-host` on the Klipper machine directly.
+
+1. Run the host daemon (see above) on the port wired to your PC.
+2. Open the Pages site, click **Connect serial port**, pick the port, then **Open Fluidd / Mainsail**.
+3. The page also lists the host's serial devices and offers a raw console for each.
+
+Notes: the apps are fetched at deploy time by `tools/build_site.py` (`.github/workflows/pages.yml`;
+enable Pages with source "GitHub Actions"). Webcam streams are not supported, and file uploads/thumbnails
+are limited by link speed. Keep the launcher tab open; it owns the serial port.
+
+Try it without hardware: `ssh -L 9000:127.0.0.1:9000 host`, run the host with `--listen 127.0.0.1:9000`,
+`python tools/ws_bridge.py --tcp 127.0.0.1:9000`, `python tools/build_site.py --base=` and serve `_site`,
+then open `http://localhost:8000/?link=ws://127.0.0.1:9001`.
+
 ## Security
 
 The host only allows localhost TCP ports 80, 81, 443, 7125, 7126 (extend with `--allow-port`),
