@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "serial-klipper"
+version = "0.1.0"
+description = "Connect to a Klipper host over a serial connection"
+requires-python = ">=3.9"
+dependencies = ["pyserial>=3.4"]
+
+[project.scripts]
+serial-klipper = "serial_klipper.client:main"
+serial-klipper-host = "serial_klipper.host:main"
+
+[tool.setuptools]
+packages = ["serial_klipper"]

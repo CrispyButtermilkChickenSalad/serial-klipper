@@ -1,0 +1,14 @@
+[Unit]
+Description=serial-klipper host daemon
+After=network.target
+
+[Service]
+User=@USER@
+WorkingDirectory=@DIR@
+EnvironmentFile=/etc/default/serial-klipper
+ExecStart=/usr/bin/python3 -m serial_klipper.host --link ${LINK} --baud ${BAUD}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
