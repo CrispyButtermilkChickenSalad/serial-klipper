@@ -218,7 +218,12 @@ export class WebSerialLink {
   constructor(port) { this.port = port; this.onData = () => {}; this.onClose = () => {}; }
   static async request(baudRate) {
     const port = await navigator.serial.requestPort();
-    await port.open({ baudRate, bufferSize: 8192 });
+    let err;
+    for (let i = 0; i < 6; i++) {
+      try { await port.open({ baudRate, bufferSize: 8192 }); err = null; break; }
+      catch (e) { err = e; if (e.name === "InvalidStateError") { err = null; break; } await new Promise((r) => setTimeout(r, 700)); }
+    }
+    if (err) throw new Error(`Failed to open port (${err.name}: ${err.message}). Another program or browser tab is probably holding it; close it and retry.`);
     const link = new WebSerialLink(port);
     link._start();
     return link;
