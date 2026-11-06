@@ -65,6 +65,17 @@ Try it without hardware: `ssh -L 9000:127.0.0.1:9000 host`, run the host with `-
 `python tools/ws_bridge.py --tcp 127.0.0.1:9000`, `python tools/build_site.py --base=` and serve `_site`,
 then open `http://localhost:8000/?link=ws://127.0.0.1:9001`.
 
+## Link speed and config backup (web UI)
+
+After connecting, **Link speed** switches the serial link (up to 3 Mbaud) without touching the host: the daemon
+changes rate, the page reopens the port at the new rate and re-handshakes. If no handshake arrives within 15 s the
+host reverts to its configured `BAUD`, so a rate the UART can't sustain never strands the link. Set the permanent
+default in `/etc/default/serial-klipper`.
+
+**Config backup** downloads every file in Moonraker's `config` root as a zip, over the same link.
+Klipper itself can't run inside a web page (it needs native timing-critical code and raw MCU access), so
+the page only talks to a host that runs Klipper.
+
 ## Security
 
 The host only allows localhost TCP ports 80, 81, 443, 7125, 7126 (extend with `--allow-port`),

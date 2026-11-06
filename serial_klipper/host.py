@@ -16,6 +16,8 @@ from .link import SerialLink, StreamLink
 from .mux import Session
 
 DEFAULT_PORTS = (80, 81, 443, 7125, 7126)
+LINK_BAUDS = (9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600, 1000000, 1500000, 2000000, 3000000)
+REVERT_SECONDS = 15
 DEV_DIRS = ("/dev/serial/by-id", "/dev/serial/by-path")
 
 
@@ -54,6 +56,8 @@ class Host:
         self.ports = set(args.allow_port or DEFAULT_PORTS)
         self.comms = os.path.realpath(os.path.expanduser(args.comms_dir))
         self.link_real = None
+        self.link = None
+        self.revert = None
         if args.link and args.link.startswith("/dev/"):
             self.link_real = os.path.realpath(args.link)
 
@@ -67,6 +71,7 @@ class Host:
     async def open_info(self, session, ch, p):
         info = {"version": __version__, "hostname": socket.gethostname(),
                 "tcp_ports": sorted(self.ports), "comms_dir": self.comms,
+                "link_baud": getattr(getattr(self.link, "ser", None), "baudrate", None), "bauds": list(LINK_BAUDS),
                 "sockets": sorted(os.path.basename(s) for s in glob.glob(self.comms + "/*.sock")),
                 "devices": await asyncio.get_running_loop().run_in_executor(None, list_devices, self.link_real)}
         ch.start(self._null)
@@ -76,6 +81,36 @@ class Host:
 
     async def _null(self, data):
         pass
+
+    async def open_baud(self, session, ch, p):
+        """Switch the link speed at runtime; reverts to --baud unless the client re-handshakes in time."""
+        baud = int(p.get("baud", 0))
+        if baud not in LINK_BAUDS:
+            raise ValueError(f"unsupported link baud {baud}")
+        if not hasattr(self.link, "set_baud"):
+            raise ValueError("this link has no baud rate")
+        ch.start(self._null)
+        await session.reply_open(ch, True)
+        await ch.close()
+        self._cancel_revert()
+        self.revert = asyncio.ensure_future(self._switch(baud))
+
+    async def _switch(self, baud):
+        await asyncio.sleep(0.7)  # let the reply drain at the old speed
+        await self.link.set_baud(baud)
+        print(f"link baud -> {baud}", flush=True)
+        if baud != self.args.baud:
+            await self._revert()
+
+    async def _revert(self):
+        await asyncio.sleep(REVERT_SECONDS)
+        await self.link.set_baud(self.args.baud)
+        print(f"no handshake at the new speed; link baud -> {self.args.baud}", flush=True)
+
+    def _cancel_revert(self):
+        if self.revert:
+            self.revert.cancel()
+            self.revert = None
 
     async def _bridge(self, session, ch, reader, writer):
         async def sink(data):
@@ -164,9 +199,11 @@ class Host:
         session.on_open = lambda ch, p: self.on_open(session, ch, p)
 
         async def on_reset(peer):
+            self._cancel_revert()
             await session.send_hello("host")
 
         session.on_reset = on_reset
+        self.link = link
         try:
             while True:
                 data = await link.read()
@@ -174,6 +211,7 @@ class Host:
                     break
                 await session.feed(data)
         finally:
+            self._cancel_revert()
             await session.reset()
             link.close()
 

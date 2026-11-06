@@ -38,7 +38,10 @@
        host daemon over Web Serial. Nothing is uploaded.</p>
     <p id="unsupported" class="err" hidden>Web Serial is not available. Use Chrome or Edge on desktop (https or localhost).</p>
     <div class="row">
-      <label>Link baud <input id="baud" type="number" value="115200" style="width:8rem"></label>
+      <label>Link baud <select id="baud">
+        <option>9600</option><option>57600</option><option selected>115200</option><option>230400</option>
+        <option>460800</option><option>921600</option><option>1000000</option><option>1500000</option><option>2000000</option>
+      </select></label>
       <button id="connectBtn" class="primary">Connect serial port…</button>
     </div>
     <p class="muted">The host needs <code>serial-klipper-host</code> running on the port you pick.
@@ -49,8 +52,18 @@
   <section id="ready" hidden>
     <h2 id="hostname"></h2>
     <div class="row">
+      <label>Link speed <select id="speed"></select></label>
+      <button id="speedBtn">Change speed</button>
+      <span id="speedMsg" class="muted"></span>
+    </div>
+    <div class="row">
       <button id="openFluidd" class="primary">Open Fluidd</button>
       <button id="openMainsail" class="primary">Open Mainsail</button>
+    </div>
+    <h3>Config backup</h3>
+    <div class="row">
+      <button id="backupBtn">Download host config (zip)</button>
+      <span id="backupMsg" class="muted"></span>
     </div>
     <h3>Serial devices on the host</h3>
     <table id="devices"><thead><tr><th>Device</th><th>Path</th><th>State</th><th></th></tr></thead><tbody></tbody></table>

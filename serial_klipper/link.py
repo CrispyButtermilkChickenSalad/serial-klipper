@@ -29,6 +29,9 @@ class SerialLink:
     async def write(self, data):
         await self.loop.run_in_executor(None, self.ser.write, data)
 
+    async def set_baud(self, baud):
+        await self.loop.run_in_executor(None, setattr, self.ser, "baudrate", baud)
+
     def close(self):
         self.alive = False
         try:

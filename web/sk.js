@@ -240,19 +240,30 @@ export class WebSerialLink {
   _start() {
     if (this.port.writable.locked || this.port.readable.locked) throw new Error("serial port is still locked by this tab; reload the page (Ctrl+Shift+R) and try again");
     this.writer = this.port.writable.getWriter();
-    this.reader = this.port.readable.getReader();
+    const reader = this.reader = this.port.readable.getReader();
     (async () => {
       try {
         for (;;) {
-          const { value, done } = await this.reader.read();
+          const { value, done } = await reader.read();
           if (done) break;
           if (value) this.onData(value);
         }
       } catch (e) { /* port lost */ }
-      this.onClose();
+      if (this.reader === reader) this.onClose();
     })();
   }
   write(data) { return this.writer.write(data); }
+  async reopen(baudRate) {
+    const cb = this.onClose;
+    this.onClose = () => {};
+    await this.close();
+    for (let i = 0; ; i++) {
+      try { await this.port.open({ baudRate, bufferSize: 8192 }); break; }
+      catch (e) { if (i >= 6) throw e; await new Promise((r) => setTimeout(r, 700)); }
+    }
+    this._start();
+    this.onClose = cb;
+  }
   async close() {
     try { await this.reader.cancel(); } catch (e) { /* ignore */ }
     try { this.reader.releaseLock(); this.writer.releaseLock(); await this.port.close(); } catch (e) { /* ignore */ }

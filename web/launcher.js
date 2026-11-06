@@ -1,5 +1,6 @@
 import { Session, WebSerialLink, WsLink } from "./sk.js";
 import { httpRequest, makeWebSocketClass } from "./tunnel.js";
+import { backupConfig } from "./backup.js";
 
 const $ = (id) => document.getElementById(id);
 let session = null;
@@ -65,6 +66,7 @@ async function attach(newLink) {
   $("ready").hidden = false;
   $("disconnect").hidden = false;
   $("hostname").textContent = `${info.hostname} (serial-klipper ${info.version})`;
+  fillSpeeds(info);
   const tb = $("devices").tBodies[0];
   tb.innerHTML = "";
   for (const d of info.devices) {
@@ -78,6 +80,48 @@ async function attach(newLink) {
     tr.insertCell().append(b);
   }
 }
+
+function fillSpeeds(info) {
+  const sel = $("speed");
+  sel.innerHTML = "";
+  const cur = info.link_baud || +$("baud").value;
+  for (const b of info.bauds || []) sel.add(new Option(b, b, false, b === cur));
+  $("speedBtn").disabled = !(info.bauds && link && link.reopen);
+  $("speedMsg").textContent = `current: ${cur}`;
+}
+
+$("speedBtn").onclick = async () => {
+  const baud = +$("speed").value;
+  $("speedBtn").disabled = true;
+  try {
+    const ch = await session.open({ kind: "baud", baud });
+    await ch.close(false);
+    $("speedMsg").textContent = "switching…";
+    await new Promise((r) => setTimeout(r, 1500));
+    await link.reopen(baud);
+    session = new Session(link);
+    await session.connect();
+    fillSpeeds(await session.info());
+    setStatus("connected", "ok");
+  } catch (e) {
+    $("speedMsg").textContent = "failed: " + (e.message || e) + " (host reverts to its default speed in ~15 s; reconnect)";
+    setStatus("link lost", "err");
+  }
+  $("speedBtn").disabled = false;
+};
+
+$("backupBtn").onclick = async () => {
+  $("backupBtn").disabled = true;
+  try {
+    const { blob, count } = await backupConfig(session, hostPort, (t) => { $("backupMsg").textContent = t; });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "klipper-config.zip";
+    a.click();
+    $("backupMsg").textContent = `saved ${count} files`;
+  } catch (e) { $("backupMsg").textContent = "failed: " + (e.message || e); }
+  $("backupBtn").disabled = false;
+};
 
 $("connectBtn").onclick = async () => {
   showError("");
