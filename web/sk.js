@@ -217,7 +217,10 @@ export class Session {
 export class WebSerialLink {
   constructor(port) { this.port = port; this.onData = () => {}; this.onClose = () => {}; }
   static async request(baudRate) {
+    // a previous attempt in this tab may still hold the port's stream locks
+    if (WebSerialLink.current) { await WebSerialLink.current.close(); WebSerialLink.current = null; }
     const port = await navigator.serial.requestPort();
+    for (const p of await navigator.serial.getPorts()) if (p === port && (p.readable || p.writable)) { try { await p.close(); } catch (e) { /* locked by a stale reader */ } }
     let err;
     for (let i = 0; i < 6; i++) {
       try { await port.open({ baudRate, bufferSize: 8192 }); err = null; break; }
@@ -230,10 +233,12 @@ export class WebSerialLink {
     }
     if (err) throw new Error(`Failed to open port (${err.name}: ${err.message}). Another program or browser tab is probably holding it; close it and retry.`);
     const link = new WebSerialLink(port);
-    link._start();
+    WebSerialLink.current = link;
+    try { link._start(); } catch (e) { await link.close(); WebSerialLink.current = null; throw e; }
     return link;
   }
   _start() {
+    if (this.port.writable.locked || this.port.readable.locked) throw new Error("serial port is still locked by this tab; reload the page (Ctrl+Shift+R) and try again");
     this.writer = this.port.writable.getWriter();
     this.reader = this.port.readable.getReader();
     (async () => {
