@@ -50,8 +50,16 @@ async function attach(newLink) {
   session = new Session(link);
   link.onClose = () => { setStatus("link lost", "err"); showMenu(); $("connect").hidden = false; $("ready").hidden = true; $("disconnect").hidden = true; session = null; };
   setStatus("handshaking…");
-  await session.connect();
-  const info = await session.info();
+  let info;
+  try {
+    await session.connect();
+    info = await session.info();
+  } catch (e) {
+    link.onClose = () => {};
+    await link.close();
+    session = null;
+    throw e;
+  }
   setStatus("connected", "ok");
   $("connect").hidden = true;
   $("ready").hidden = false;
