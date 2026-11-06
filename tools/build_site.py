@@ -18,7 +18,6 @@ URLS = {
     "fluidd": "https://github.com/fluidd-core/fluidd/releases/latest/download/fluidd.zip",
     "mainsail": "https://github.com/mainsail-crew/mainsail/releases/latest/download/mainsail.zip",
 }
-SHIM = '<script src="../shim.js"></script>'
 # Mainsail is built for a root-relative deployment; point its absolute resource paths into its subfolder.
 ABS = re.compile(r"""(["'`(=])/(assets|img|fonts|css|favicon\.ico|manifest\.webmanifest|config\.json|release_info\.json)""")
 
@@ -40,7 +39,7 @@ def install(app, data, out, base):
         f.unlink()
     html = dest / "index.html"
     text = html.read_text(encoding="utf8")
-    text = re.sub(r"(<head[^>]*>)", r"\1" + SHIM, text, count=1)
+    text = re.sub(r"(<head[^>]*>)", r"\1" + f'<script src="{base}/shim.js"></script>', text, count=1)
     if app == "mainsail":
         text = re.sub(r"(<head[^>]*>)", r"\1<script>history.replaceState(null,'','/')</script>", text, count=1)
         text = ABS.sub(rf"\1{base}/mainsail/\2", text)

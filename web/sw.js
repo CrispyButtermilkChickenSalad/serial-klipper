@@ -7,7 +7,7 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 async function launcher() {
   const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-  return all.find((c) => { const p = new URL(c.url).pathname; return !/\/(fluidd|mainsail)\//.test(p); });
+  return all.find((c) => c.frameType === "top-level");
 }
 
 async function tunnel(request, url) {
